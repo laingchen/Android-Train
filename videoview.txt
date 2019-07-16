@@ -1,0 +1,95 @@
+package com.example.administrator.myviewdemo;
+
+import android.net.Uri;
+import android.os.Handler;
+import android.os.Message;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.SeekBar;
+import android.widget.VideoView;
+
+//MediaPlay
+public class MainActivity extends AppCompatActivity implements View.OnClickListener,
+        SeekBar.OnSeekBarChangeListener {
+    private VideoView mVideoView;
+    private SeekBar mSeekBar;
+    private Button mButton;
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        init();
+    }
+    //控件初始化
+    public void init(){
+
+        mSeekBar = findViewById(R.id.progressbar);
+        mButton = findViewById(R.id.video_button);
+        mVideoView = findViewById(R.id.video_view);
+        //指定播放的视频
+        mVideoView.setVideoURI(Uri.parse("android.resource://"
+                +getPackageName()+"/raw/"+R.raw.test));
+        mButton.setOnClickListener(this);
+        mSeekBar.setOnSeekBarChangeListener(this);
+    }
+
+    @Override
+    public void onClick(View v) {
+        //开始播放
+        mVideoView.start();
+//        Log.e("time",mVideoView.getDuration()+"");
+        //通过mVideoView.getDuration()获得到视频播放的持续时间
+        mSeekBar.setMax(mVideoView.getDuration());
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                //判断videoView是否在播放
+                while (mVideoView.isPlaying()){
+                    //获得到当前播放进度的位置
+                    int position = mVideoView.getCurrentPosition();
+                    //把position通过handler传递给UI主线程
+                    Message message= new Message();
+                    message.arg1 = position;
+                    Log.e("position",mVideoView.getCurrentPosition()+"");
+                    myHandler.sendMessage(message);
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
+
+    }
+
+    private Handler myHandler = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            //在主线程中更新进度
+            mSeekBar.setProgress(msg.arg1);
+        }
+    };
+    //进度改变时调用
+    @Override
+    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+    }
+    //开始拖动时执行
+    @Override
+    public void onStartTrackingTouch(SeekBar seekBar) {
+
+    }
+    //停止时执行的方法
+    @Override
+    public void onStopTrackingTouch(SeekBar seekBar) {
+        if (mVideoView.isPlaying()){
+            int position = seekBar.getProgress();
+            mVideoView.seekTo(position);
+        }
+    }
+}
